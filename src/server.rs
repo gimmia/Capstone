@@ -92,3 +92,4 @@ macro_rules! debug_msg {
     ($($arg:tt)*) => {};
 }
 
+println!("test");
