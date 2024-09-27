@@ -1,6 +1,6 @@
 pub const MAX_HEADER_SIZE: usize = 1024;
 pub const MAX_BODY_SIZE: usize = 1024;
-pub const MHS_PORT: u16 = 80; // 기본 포트
+pub const MHS_PORT: u16 = 80;
 pub const MAX_HTTP_CLIENT: usize = 5;
 pub const HTTP_SERVER: &str = "Micro CHTTP Server";
 
