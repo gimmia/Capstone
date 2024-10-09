@@ -1,6 +1,5 @@
 // 컴파일 시 다음 플래그를 활성화: cargo build --features "enable_static_file"
 
-use std::sync::Mutex;
 use std::os::unix::fs::PermissionsExt;
 use std::fs;
 use crate::middleware::{MAX_HTTP_ROUTES, SAF, STATIC_FILE_FOLDER}; 
