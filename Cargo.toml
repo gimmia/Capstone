@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 nix = "0.24"
+
+[features]
+enable_static_file = []
