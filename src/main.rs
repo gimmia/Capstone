@@ -74,7 +74,7 @@ pub fn read_static_files(req: &HTTPReqMessage, res: &HTTPResMessage) -> u8 {
                     res.buf[..n].copy_from_slice(header.as_bytes());
                     i = n;
 
-                    n = file.read(&mut res._buf[i..(i + size as usize)]).unwrap_or(0);
+                    n = file.read(&mut res.buf[i..(i + size as usize)]).unwrap_or(0);
                     i += n;
 
                     res.index = i;
