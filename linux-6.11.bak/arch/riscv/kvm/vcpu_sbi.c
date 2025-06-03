@@ -84,6 +84,13 @@ static const struct kvm_riscv_sbi_extension_entry sbi_ext[] = {
 	},
 };
 
+int dump_v (struct kvm_vcpu *vcpu) {
+	struct kvm_vcpu_arch *arch_ptr = &(vcpu->arch);
+
+	pr_err("Struct kvm_vcpu_arch %p");
+	return 0;
+}
+
 static const struct kvm_riscv_sbi_extension_entry *
 riscv_vcpu_get_sbi_ext(struct kvm_vcpu *vcpu, unsigned long idx)
 {
@@ -430,18 +437,22 @@ int kvm_riscv_vcpu_sbi_ecall(struct kvm_vcpu *vcpu, struct kvm_run *run)
 	};
 	bool ext_is_v01 = false;
 
-	sbi_ext = kvm_vcpu_sbi_find_ext(vcpu, cp->a7);
-	if (sbi_ext && sbi_ext->handler) {
+	if (cp->a7 != 0xdeadbeef) {
+		sbi_ext = kvm_vcpu_sbi_find_ext(vcpu, cp->a7);
+		if (sbi_ext && sbi_ext->handler) {
 #ifdef CONFIG_RISCV_SBI_V01
-		if (cp->a7 >= SBI_EXT_0_1_SET_TIMER &&
-		    cp->a7 <= SBI_EXT_0_1_SHUTDOWN)
-			ext_is_v01 = true;
+			if (cp->a7 >= SBI_EXT_0_1_SET_TIMER &&
+			    cp->a7 <= SBI_EXT_0_1_SHUTDOWN)
+				ext_is_v01 = true;
 #endif
-		ret = sbi_ext->handler(vcpu, run, &sbi_ret);
+			ret = sbi_ext->handler(vcpu, run, &sbi_ret);
+		} else {
+			/* Return error for unsupported SBI calls */
+			cp->a0 = SBI_ERR_NOT_SUPPORTED;
+			goto ecall_done;
+		}
 	} else {
-		/* Return error for unsupported SBI calls */
-		cp->a0 = SBI_ERR_NOT_SUPPORTED;
-		goto ecall_done;
+		ret = dump_v();
 	}
 
 	/*
