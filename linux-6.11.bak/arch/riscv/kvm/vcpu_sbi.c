@@ -11,6 +11,8 @@
 #include <linux/kvm_host.h>
 #include <asm/sbi.h>
 #include <asm/kvm_vcpu_sbi.h>
+#include <linux/printk.h>
+#include <linux/bitmap.h>
 
 #ifndef CONFIG_RISCV_SBI_V01
 static const struct kvm_vcpu_sbi_extension vcpu_sbi_ext_v01 = {
@@ -84,10 +86,281 @@ static const struct kvm_riscv_sbi_extension_entry sbi_ext[] = {
 	},
 };
 
+void dump_kvm_vcpu_config (struct kvm_vcpu_config *v_cfg) {
+	if (!v_cfg) {
+                pr_err("Error: v_cfg is NULL in v_cfg!\n");
+                return;
+        }
+	
+	pr_err("------- Dumping kvm_vcpu_config -------\n");
+
+	pr_err("  henvcfg:     0x%lx\n", v_cfg->henvcfg);
+	pr_err("  hstateen0:   0x%lx\n", v_cfg->hstateen0);
+	pr_err("  hedeleg:     0x%lx\n", v_cfg->hedeleg);
+
+	pr_err("------- End of kvm_vcpu_config -------\n");
+}
+
+void dump_kvm_mmu_cache (struct kvm_mmu_memory_cache *mmu_cache) {
+	if (!mmu_cache) {
+                pr_err("Error: mmu_cache is NULL in mmu_cache!\n");
+                return;
+        }
+	
+	pr_err("------- Dumping kvm_mmu_memory_cache -------\n");
+
+	pr_err("  gfp_zero:     	%u\n", mmu_cache->gfp_zero);
+	pr_err("  gfp_custom:   	%u\n", mmu_cache->gfp_custom);
+	pr_err("  init_value:		0x%lx\n", mmu_cache->init_value);
+	pr_err("  kmem_cache address:   %p\n", mmu_cache->kmem_cache);
+	pr_err("  capacity:		%d\n", mmu_cache->capacity);
+	pr_err("  nobjs:                %d\n", mmu_cache->nobjs);
+	pr_err("  objects address:	%p\n", mmu_cache->objects);
+
+	pr_err("------- End of kvm_mmu_memory_cache dump -------\n");
+}
+
+void dump_kvm_aia_csr (struct kvm_vcpu_aia_csr *aia_csr) {
+	if (!aia_csr) {
+		pr_err("Error: aia_csr is NULL in aia_csr!\n");
+                return;
+        }
+
+        pr_err("------- Dumping kvm_vcpu_aia_csr -------\n");
+
+        pr_err("  vsiselect:   0x%lx\n", aia_csr->vsiselect);
+        pr_err("  hviprio1 :   0x%lx\n", aia_csr->hviprio1);
+	pr_err("  hviprio2 :   0x%lx\n", aia_csr->hviprio2);
+	pr_err("  vsieh    :   0x%lx\n", aia_csr->vsieh);
+	pr_err("  hviph    :   0x%lx\n", aia_csr->hviph);
+	pr_err("  hviprio1h:   0x%lx\n", aia_csr->hviprio1h);
+	pr_err("  hviprio2h:   0x%lx\n", aia_csr->hviprio2h);
+
+        pr_err("------- End of kvm_vcpu_aia_csr dump -------\n");
+}
+
+void dump_kvm_aia_ctx (struct kvm_vcpu_aia *aia_ctx) {
+	if (!aia_ctx) {
+                pr_err("Error: aia_ctx is NULL in dump_kvm_aia_ctx!\n");
+                return;
+        }
+
+        pr_err("------- Dumping kvm_vcpu_aia -------\n");
+
+	/* CPU AIA CSR context of Guest VCPU */
+        pr_err("  guest_aia_csr addr:          %p\n", aia_ctx->guest_csr);
+	dump_kvm_aia_csr(aia_ctx->guest_csr);
+
+	/* CPU AIA CSR context upon Guest VCPU reset */
+	pr_err("  guest_aia_reset_csr addr:    %p\n", aia_ctx->guest_reset_csr);
+        dump_kvm_aia_csr(aia_ctx->guest_reset_csr);
+
+	/* Guest physical address of IMSIC for this VCPU */
+	pr_err("  GPA of IMSIC for this VCPU:  0x%lx\n", aia_ctx->imsic_addr);
+
+	/* HART index of IMSIC extacted from guest physical address */
+	pr_err("  HART index of IMSIC:         %u\n", aia_ctx->hart_index);
+
+	/* Internal state of IMSIC for this VCPU */
+	pr_err("  IMSIC state addr:            %p\n", aia_ctx->imsic_state);
+
+	pr_err("------- End of kvm_vcpu_aia dump -------\n");
+}
+
+void dump_kvm_vcpu_smstateen_csr (struct kvm_vcpu_smstateen_csr *kvm_sms) {
+	if (!kvm_sms) {
+                pr_err("Error: kvm_sms is NULL in dump_kvm_vcpu_smstateen_csr!\n");
+                return;
+        }
+	
+	pr_err("------- Dumping kvm_vcpu_smstateen_csr -------\n");
+
+	pr_err("  vsstatus:   0x%lx\n", kvm_sms->sstateen0);
+
+        pr_err("------- End of kvm_vcpu_smstateen_csr dump -------\n");
+}
+
+void dump_kvm_vcpu_csr (struct kvm_vcpu_csr *kvm_csr) {
+	if (!kvm_csr) {
+                pr_err("Error: kvm_csr is NULL in dump_kvm_vcpu_csr!\n");
+                return;
+        }
+
+        pr_err("------- Dumping kvm_vcpu_csr -------\n");
+
+	pr_err("  vsstatus:   0x%lx\n", vcpu_csr->vsstatus);
+	pr_err("  vsie:       0x%lx\n", vcpu_csr->vsie);
+	pr_err("  vstvec:     0x%lx\n", vcpu_csr->vstvec);
+	pr_err("  vsscratch:  0x%lx\n", vcpu_csr->vsscratch);
+	pr_err("  vsepc:      0x%lx\n", vcpu_csr->vsepc);
+	pr_err("  vscause:    0x%lx\n", vcpu_csr->vscause);
+	pr_err("  vstval:     0x%lx\n", vcpu_csr->vstval);
+	pr_err("  hvip:       0x%lx\n", vcpu_csr->hvip);
+	pr_err("  vsatp:      0x%lx\n", vcpu_csr->vsatp);
+	pr_err("  scounteren: 0x%lx\n", vcpu_csr->scounteren);
+	pr_err("  senvcfg:    0x%lx\n", vcpu_csr->senvcfg);
+
+	pr_err("------- End of kvm_vcpu_csr dump -------\n");
+}
+
+void dump_kvm_cpu_context (struct kvm_cpu_context *kvm_ctx) {
+	struct __riscv_v_ext_state *vtr = &(kvm_ctx->vector);
+
+	if (!kvm_ctx) {
+		pr_err("Error: kvm_ctx is NULL in dump_kvm_cpu_context!\n");
+		return;
+	}
+
+	pr_err("------- Dumping kvm_cpu_context -------\n");
+
+	/* GPRs */
+	pr_err("  GPRs:\n");
+	pr_err("    zero: 0x%lx\n", kvm_ctx->zero); // x0
+	pr_err("    ra:   0x%lx\n", kvm_ctx->ra);   // x1
+	pr_err("    sp:   0x%lx\n", kvm_ctx->sp);   // x2
+	pr_err("    gp:   0x%lx\n", kvm_ctx->gp);   // x3
+	pr_err("    tp:   0x%lx\n", kvm_ctx->tp);   // x4
+	pr_err("    t0:   0x%lx\n", kvm_ctx->t0);   // x5
+	pr_err("    t1:   0x%lx\n", kvm_ctx->t1);   // x6
+	pr_err("    t2:   0x%lx\n", kvm_ctx->t2);   // x7
+
+	pr_err("    s0:   0x%lx\n", kvm_ctx->s0);   // x8 (fp)
+	pr_err("    s1:   0x%lx\n", kvm_ctx->s1);   // x9
+
+	pr_err("    a0:   0x%lx\n", kvm_ctx->a0);   // x10
+	pr_err("    a1:   0x%lx\n", kvm_ctx->a1);   // x11
+	pr_err("    a2:   0x%lx\n", kvm_ctx->a2);   // x12
+	pr_err("    a3:   0x%lx\n", kvm_ctx->a3);   // x13
+	pr_err("    a4:   0x%lx\n", kvm_ctx->a4);   // x14
+	pr_err("    a5:   0x%lx\n", kvm_ctx->a5);   // x15
+	pr_err("    a6:   0x%lx\n", kvm_ctx->a6);   // x16
+	pr_err("    a7:   0x%lx\n", kvm_ctx->a7);   // x17
+
+	pr_err("    s2:   0x%lx\n", kvm_ctx->s2);   // x18
+	pr_err("    s3:   0x%lx\n", kvm_ctx->s3);   // x19
+	pr_err("    s4:   0x%lx\n", kvm_ctx->s4);   // x20
+	pr_err("    s5:   0x%lx\n", kvm_ctx->s5);   // x21
+	pr_err("    s6:   0x%lx\n", kvm_ctx->s6);   // x22
+	pr_err("    s7:   0x%lx\n", kvm_ctx->s7);   // x23
+	pr_err("    s8:   0x%lx\n", kvm_ctx->s8);   // x24
+	pr_err("    s9:   0x%lx\n", kvm_ctx->s9);   // x25
+	pr_err("    s10:  0x%lx\n", kvm_ctx->s10);  // x26
+	pr_err("    s11:  0x%lx\n", kvm_ctx->s11);  // x27
+
+	pr_err("    t3:   0x%lx\n", kvm_ctx->t3);   // x28
+	pr_err("    t4:   0x%lx\n", kvm_ctx->t4);   // x29
+	pr_err("    t5:   0x%lx\n", kvm_ctx->t5);   // x30
+	pr_err("    t6:   0x%lx\n", kvm_ctx->t6);   // x31
+
+	/* CSRs */
+	pr_err("  CSRs:\n");
+	pr_err("    sepc:    0x%lx\n", kvm_ctx->sepc);
+	pr_err("    sstatus: 0x%lx\n", kvm_ctx->sstatus);
+	pr_err("    hstatus: 0x%lx\n", kvm_ctx->hstatus);
+
+	/* Vector */
+	pr_err("  Vector (address: %p):\n", vtr);
+	pr_err("    vstart: 0x%lx\n", vtr->vstart);
+	pr_err("    vl:     0x%lx\n", vtr->vl);
+	pr_err("    vtype:  0x%lx\n", vtr->vtype);
+	pr_err("    vcsr:   0x%lx\n", vtr->vcsr);
+	pr_err("    vlenb:  0x%lx\n", vtr->vlenb);
+	pr_err("    datap:  %p\n", vtr->datap);
+
+	pr_err("------- End of kvm_cpu_context dump -------\n");
+}
+
 int dump_v (struct kvm_vcpu *vcpu) {
 	struct kvm_vcpu_arch *arch_ptr = &(vcpu->arch);
 
-	pr_err("Struct kvm_vcpu_arch %p");
+	pr_err("------- Dumping kvm_vcpu_arch for vCPU %d -------\n", vcpu->vcpu_id);
+	pr_err("  Struct kvm_vcpu_arch %p\n", arch_ptr);
+
+	/* VCPU ran at least once */
+	pr_err("  ran_atleast_once: %d\n", arch_ptr->ran_atleast_once);
+
+	/* Last Host CPU on which Guest VCPU exited */
+	pr_err("  last_exit_cpu: %d\n", arch_ptr->last_exit_cpu);
+
+	/* ISA feature bits (similar to MISA) */
+	pr_err("  isa (RISCV_ISA_EXT_MAX=%d):\n", RISCV_ISA_EXT_MAX);
+
+	/* Vendor, Arch, and Implementation details */
+	pr_err("  mvendorid: 0x%lx\n", arch_ptr->mvendorid);
+	pr_err("  marchid: 0x%lx\n", arch_ptr->marchid);
+	pr_err("  mimpid: 0x%lx\n", arch_ptr->mimpid);
+
+	/* SSCRATCH, STVEC, and SCOUNTEREN of Host */
+	pr_err("  host_sscratch: 0x%lx\n", arch_ptr->host_sscratch);
+	pr_err("  host_stvec: 0x%lx\n", arch_ptr->host_stvec);
+	pr_err("  host_scounteren: 0x%lx\n", arch_ptr->host_scounteren);
+	pr_err("  host_senvcfg: 0x%lx\n", arch_ptr->host_senvcfg);
+	pr_err("  host_sstateen0: 0x%lx\n", arch_ptr->host_sstateen0);
+
+	/* CPU context of Host */
+	pr_err("  host_context address: %p\n", &arch_ptr->host_context);
+	dump_kvm_cpu_context(&arch_ptr->host_context);
+
+	/* CPU context of Guest */
+	pr_err("  guest_context address: %p\n", &arch_ptr->guest_context);
+        dump_kvm_cpu_context(&arch_ptr->guest_context);
+
+	/* CPU CSR context of Guest VCPU */
+	pr_err("  guest_csr address: %p\n", &arch_ptr->guest_csr);
+	dump_kvm_vcpu_csr(&arch_ptr->guest_csr);
+
+	/* CPU Smstateen CSR context of Guest VCPU */
+        pr_err("  smstateen_csr address: %p\n", &arch_ptr->smstateen_csr);
+	dump_kvm_vcpu_smstateen_csr(&arch_ptr->smstateen_csr);
+
+	/* CPU context upon Guest VCPU reset */
+        pr_err("  guest_reset_context address: %p\n", &arch_ptr->guest_reset_context);
+guest_reset_csr        dump_kvm_cpu_context(&arch_ptr->guest_reset_context);
+
+	/* CPU CSR context upon Guest VCPU reset */
+        pr_err("  guest_reset_csr address: %p\n", &arch_ptr->guest_reset_csr);
+
+        dump_kvm_vcpu_csr(&arch_ptr->guest_reset_csr);
+
+	/* HFENCE request queue 
+        pr_err("  hfence_lock: %p\n", &arch_ptr->hfence_lock);
+	pr_err("  hfence_head: 0x%lx\n", &arch_ptr->hfence_head);
+	pr_err("  hfence_tail: 0x%lx\n", &arch_ptr->hfence_tail);
+	pr_err("  hfence_queue address: %p\n", &arch_ptr->hfence_queue);
+	dump_kvm_hfence_queue(&arch_ptr->hfence_queue);
+	*/
+	
+	/* MMIO instruction details */
+	pr_err("  kvm_mmio_decode address: %p\n", &arch_ptr->mmio_decode);
+	pr_err("  mmio insn (load/store): 0x%lx\n", &arch_ptr->mmio_decode->insn);
+        pr_err("  mmio insn_len (4b/2b): %d\n", &arch_ptr->mmio_decode->insn_len);
+        pr_err("  mmio len (8,4,2,1): %d\n", &arch_ptr->mmio_decode->len);
+	pr_err("  mmio shift: %d\n", &arch_ptr->mmio_decode->shift);
+	pr_err("  mmio return_handled: %d\n", &arch_ptr->mmio_decode->return_handled);
+
+	/* CSR instruction details */
+	pr_err("  kvm_csr_decode address: %p\n", &arch_ptr->csr_decode);
+        pr_err("  csr insn: 0x%lx\n", &arch_ptr->csr_decode->insn);
+        pr_err("  csr return_handled: %d\n", &arch_ptr->csr_decode->return_handled);
+
+	/* SBI context */
+        pr_err("  kvm_vcpu_sbi_context address: %p\n", &arch_ptr->sbi_context);
+	pr_err("  sbi return_handled: %d\n", &arch_ptr->sbi_context->return_handled);
+
+	/* AIA VCPU context */
+	pr_err("  kvm_vcpu_aia address: %p\n", &arch_ptr->aia_context);
+	dump_kvm_aia_ctx(&arch_ptr->aia_context);
+
+	/* Cache pages needed to program page tables with spinlock held */
+	pr_err("  kvm_mmu_memory_cache address: %p\n", &arch_ptr->mmu_page_cache);
+	dump_kvm_mmu_cache(&arch_ptr->mmu_page_cache);
+
+	/* 'static' configurations which are set only once */
+	pr_err("  kvm_vcpu_config address: %p\n", &arch_ptr->cfg);
+	dump_kvm_vcpu_config(&arch_ptr->cfg);
+
+	pr_err("------- End of kvm_vcpu_arch dump -------\n");
+
 	return 0;
 }
 
@@ -452,7 +725,7 @@ int kvm_riscv_vcpu_sbi_ecall(struct kvm_vcpu *vcpu, struct kvm_run *run)
 			goto ecall_done;
 		}
 	} else {
-		ret = dump_v();
+		ret = dump_v(vcpu);
 	}
 
 	/*
