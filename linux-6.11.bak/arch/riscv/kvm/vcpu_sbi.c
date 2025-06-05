@@ -149,11 +149,11 @@ void dump_kvm_aia_ctx (struct kvm_vcpu_aia *aia_ctx) {
 
 	/* CPU AIA CSR context of Guest VCPU */
         pr_err("  guest_aia_csr addr:          %p\n", aia_ctx->guest_csr);
-	dump_kvm_aia_csr(aia_ctx->guest_csr);
+	dump_kvm_aia_csr(&aia_ctx->guest_csr);
 
 	/* CPU AIA CSR context upon Guest VCPU reset */
 	pr_err("  guest_aia_reset_csr addr:    %p\n", aia_ctx->guest_reset_csr);
-        dump_kvm_aia_csr(aia_ctx->guest_reset_csr);
+        dump_kvm_aia_csr(&aia_ctx->guest_reset_csr);
 
 	/* Guest physical address of IMSIC for this VCPU */
 	pr_err("  GPA of IMSIC for this VCPU:  0x%lx\n", aia_ctx->imsic_addr);
@@ -180,7 +180,7 @@ void dump_kvm_vcpu_smstateen_csr (struct kvm_vcpu_smstateen_csr *kvm_sms) {
         pr_err("------- End of kvm_vcpu_smstateen_csr dump -------\n");
 }
 
-void dump_kvm_vcpu_csr (struct kvm_vcpu_csr *kvm_csr) {
+void dump_kvm_vcpu_csr (struct kvm_vcpu_csr *vcpu_csr) {
 	if (!kvm_csr) {
                 pr_err("Error: kvm_csr is NULL in dump_kvm_vcpu_csr!\n");
                 return;
