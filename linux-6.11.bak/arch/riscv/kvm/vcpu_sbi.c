@@ -315,7 +315,7 @@ int dump_v (struct kvm_vcpu *vcpu) {
 
 	/* CPU context upon Guest VCPU reset */
         pr_err("  guest_reset_context address: %p\n", &arch_ptr->guest_reset_context);
-guest_reset_csr        dump_kvm_cpu_context(&arch_ptr->guest_reset_context);
+        dump_kvm_cpu_context(&arch_ptr->guest_reset_context);
 
 	/* CPU CSR context upon Guest VCPU reset */
         pr_err("  guest_reset_csr address: %p\n", &arch_ptr->guest_reset_csr);
@@ -332,20 +332,20 @@ guest_reset_csr        dump_kvm_cpu_context(&arch_ptr->guest_reset_context);
 	
 	/* MMIO instruction details */
 	pr_err("  kvm_mmio_decode address: %p\n", &arch_ptr->mmio_decode);
-	pr_err("  mmio insn (load/store): 0x%lx\n", &arch_ptr->mmio_decode->insn);
-        pr_err("  mmio insn_len (4b/2b): %d\n", &arch_ptr->mmio_decode->insn_len);
-        pr_err("  mmio len (8,4,2,1): %d\n", &arch_ptr->mmio_decode->len);
-	pr_err("  mmio shift: %d\n", &arch_ptr->mmio_decode->shift);
-	pr_err("  mmio return_handled: %d\n", &arch_ptr->mmio_decode->return_handled);
+	pr_err("  mmio insn (load/store): 0x%lx\n", &arch_ptr->mmio_decode.insn);
+        pr_err("  mmio insn_len (4b/2b): %d\n", &arch_ptr->mmio_decode.insn_len);
+        pr_err("  mmio len (8,4,2,1): %d\n", &arch_ptr->mmio_decode.len);
+	pr_err("  mmio shift: %d\n", &arch_ptr->mmio_decode.shift);
+	pr_err("  mmio return_handled: %d\n", &arch_ptr->mmio_decode.return_handled);
 
 	/* CSR instruction details */
 	pr_err("  kvm_csr_decode address: %p\n", &arch_ptr->csr_decode);
-        pr_err("  csr insn: 0x%lx\n", &arch_ptr->csr_decode->insn);
-        pr_err("  csr return_handled: %d\n", &arch_ptr->csr_decode->return_handled);
+        pr_err("  csr insn: 0x%lx\n", &arch_ptr->csr_decode.insn);
+        pr_err("  csr return_handled: %d\n", &arch_ptr->csr_decode.return_handled);
 
 	/* SBI context */
         pr_err("  kvm_vcpu_sbi_context address: %p\n", &arch_ptr->sbi_context);
-	pr_err("  sbi return_handled: %d\n", &arch_ptr->sbi_context->return_handled);
+	pr_err("  sbi return_handled: %d\n", &arch_ptr->sbi_context.return_handled);
 
 	/* AIA VCPU context */
 	pr_err("  kvm_vcpu_aia address: %p\n", &arch_ptr->aia_context);
